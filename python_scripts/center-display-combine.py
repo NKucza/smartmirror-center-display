@@ -128,6 +128,7 @@ def check_stdin():
 		elif setting == 'HIDEALL':
 			show_obj_captions = False
 			show_face_captions = False
+			show_gest_captions = False
 			show_camera = False
 			show_camera_1m = False
 
