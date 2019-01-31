@@ -23,8 +23,8 @@ image_gest_cap = np.zeros((1920,1080,3), np.uint8)
 if os.path.exists("/tmp/center_display") is True:
 	os.remove("/tmp/center_display")
 
+out = cv2.VideoWriter ('appsrc ! shmsink socket-path=/tmp/center_display sync=true wait-for-connection=false shm-size=100000000',0, 30, (1080,1920), True)
 
-out = cv2.VideoWriter('appsrc ! shmsink socket-path=/tmp/center_display sync=false wait-for-connection=false shm-size=100000000',0, 30, (1080,1920), True)
 
 out.write(np.zeros((1920,1080,3), np.uint8))
 
@@ -41,22 +41,23 @@ to_node("status", 'Buffer initalized.. starting')
 
 time.sleep(5)
 
-video = cv2.VideoCapture("shmsrc socket-path=/tmp/camera_image ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink")
-video_1m = cv2.VideoCapture("shmsrc socket-path=/tmp/camera_1m ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink")
-video_face_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/face_recognition_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink")
-video_obj_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/object_detection_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink")
-video_gest_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/gesture_recognition_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink")
+video = cv2.VideoCapture("shmsrc socket-path=/tmp/camera_image ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
+video_1m = cv2.VideoCapture("shmsrc socket-path=/tmp/camera_1m ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
+video_face_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/face_recognition_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
+video_obj_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/object_detection_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
+video_gest_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/gesture_recognition_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
 
 
 while video.isOpened() is False:
 	to_node("status", 'video is not open')
 	time.sleep(5)
 
-cv2.namedWindow("center image", cv2.WINDOW_NORMAL)
+#cv2.namedWindow("center image", cv2.WINDOW_NORMAL)
 
 #print("Calling subprocess to open gst_rtsp_server")
 BASE_DIR = os.path.dirname(__file__) + '/'
 #p = subprocess.Popen(['python', BASE_DIR + 'gst_rtsp_server.py'])
+time.sleep(2)
 pp = subprocess.Popen(['python', BASE_DIR + 'webstream.py'])
 
 def get_face_caps():
@@ -137,16 +138,22 @@ t.start()
 
 def shutdown(self, signum):
 	to_node("status", 'Shutdown: Cleaning up camera...')
+	os.remove("/tmp/center_display")
 	pp.kill()
-	video.stop()
-	video_face_cap.stop()
-	video_1m.stop()
+	video.release()
+	video_face_cap.release()
+	video_obj_cap.release()
+	video_gest_cap.release()
+	video_1m.release()
 	out.release()
+
+	#if os.path.exists("/tmp/center_display") is True:
+	
+
 	to_node("status", 'Shutdown: Done.')
 	exit()
 
 signal.signal(signal.SIGINT, shutdown)
-
 
 def writeImageToBuffer(out,image):
 	out.write(image);
@@ -164,8 +171,8 @@ while True:
 		
 	if ret is False:
 		out.write(image)
-		cv2.imshow("center image", image)
-		cv2.waitKey(1)
+		#cv2.imshow("center image", image)
+		#cv2.waitKey(1)
 		continue
 	
 	if show_face_captions is True:
@@ -183,7 +190,7 @@ while True:
 	out.write(image)
 
 
-	cv2.imshow("center image", image)
-	cv2.waitKey(1)
+	#cv2.imshow("center image", image)
+	#cv2.waitKey(1)
 
 
