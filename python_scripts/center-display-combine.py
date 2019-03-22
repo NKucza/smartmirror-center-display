@@ -14,11 +14,14 @@ show_obj_captions = False
 show_gest_captions = False
 show_camera = False
 show_camera_1m = False
-
+show_style_transfer = False
 
 image_face_cap = np.zeros((1920,1080,3), np.uint8)
 image_obj_cap = np.zeros((1920,1080,3), np.uint8)
 image_gest_cap = np.zeros((1920,1080,3), np.uint8)
+
+
+
 
 if os.path.exists("/tmp/center_display") is True:
 	os.remove("/tmp/center_display")
@@ -26,6 +29,7 @@ if os.path.exists("/tmp/center_display") is True:
 out = cv2.VideoWriter ('appsrc ! shmsink socket-path=/tmp/center_display sync=true wait-for-connection=false shm-size=100000000',0, 30, (1080,1920), True)
 
 
+out.write(np.zeros((1920,1080,3), np.uint8))
 out.write(np.zeros((1920,1080,3), np.uint8))
 
 def to_node(type, message):
@@ -39,26 +43,57 @@ def to_node(type, message):
 
 to_node("status", 'Buffer initalized.. starting')
 
-time.sleep(5)
 
-video = cv2.VideoCapture("shmsrc socket-path=/tmp/camera_image ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
-video_1m = cv2.VideoCapture("shmsrc socket-path=/tmp/camera_1m ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
-video_face_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/face_recognition_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
-video_obj_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/object_detection_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
-video_gest_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/gesture_recognition_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
+def check_stdin():
+	global show_face_captions
+	global show_obj_captions
+	global show_gest_captions
+	global show_camera
+	global show_camera_1m
+	global show_style_transfer
+	while True:
+		lines = sys.stdin.readline()
+		to_node("status", "Changing: " + lines)
+		data = json.loads(lines)
+		setting = data['SET']
+		if setting == 'TOGGLE':
+			show_camera = not show_camera
+			show_style_transfer = False
+		elif setting == 'DISTANCE':
+			show_camera_1m = not show_camera_1m
+		elif setting == 'FACE':
+			show_face_captions = not show_face_captions
+		elif setting == 'OBJECT':
+			show_obj_captions = not show_obj_captions
+		elif setting == 'GESTURE':
+			show_gest_captions = not show_gest_captions
+		elif setting == 'STYLE_TRANSFERE':
+			show_obj_captions = False
+			show_face_captions = False
+			show_gest_captions = False
+			show_camera = False
+			show_camera_1m = False
+			show_style_transfer = not show_style_transfer
+		elif setting == 'HIDEALL':
+			show_obj_captions = False
+			show_face_captions = False
+			show_gest_captions = False
+			show_camera = False
+			show_camera_1m = False
+			show_style_transfer = False
 
+t = Thread(target=check_stdin)
+t.start()
 
-while video.isOpened() is False:
-	to_node("status", 'video is not open')
-	time.sleep(5)
 
 #cv2.namedWindow("center image", cv2.WINDOW_NORMAL)
 
 #print("Calling subprocess to open gst_rtsp_server")
 BASE_DIR = os.path.dirname(__file__) + '/'
 #p = subprocess.Popen(['python', BASE_DIR + 'gst_rtsp_server.py'])
-time.sleep(2)
 pp = subprocess.Popen(['python', BASE_DIR + 'webstream.py'])
+
+time.sleep(2)
 
 def get_face_caps():
 	global image_face_cap
@@ -105,37 +140,6 @@ gest_thread = Thread(target=get_gest_caps, args= ())
 gest_thread.start()
 
 
-def check_stdin():
-	global show_face_captions
-	global show_obj_captions
-	global show_gest_captions
-	global show_camera
-	global show_camera_1m
-	while True:
-		lines = sys.stdin.readline()
-		to_node("status", "Changing: " + lines)
-		data = json.loads(lines)
-		setting = data['SET']
-		if setting == 'TOGGLE':
-			show_camera = not show_camera
-		elif setting == 'DISTANCE':
-			show_camera_1m = not show_camera_1m
-		elif setting == 'FACE':
-			show_face_captions = not show_face_captions
-		elif setting == 'OBJECT':
-			show_obj_captions = not show_obj_captions
-		elif setting == 'GESTURE':
-			show_gest_captions = not show_gest_captions
-		elif setting == 'HIDEALL':
-			show_obj_captions = False
-			show_face_captions = False
-			show_gest_captions = False
-			show_camera = False
-			show_camera_1m = False
-
-t = Thread(target=check_stdin)
-t.start()
-
 def shutdown(self, signum):
 	to_node("status", 'Shutdown: Cleaning up camera...')
 	os.remove("/tmp/center_display")
@@ -145,6 +149,7 @@ def shutdown(self, signum):
 	video_obj_cap.release()
 	video_gest_cap.release()
 	video_1m.release()
+	video_style_transfer.release()
 	out.release()
 
 	#if os.path.exists("/tmp/center_display") is True:
@@ -155,21 +160,51 @@ def shutdown(self, signum):
 
 signal.signal(signal.SIGINT, shutdown)
 
-def writeImageToBuffer(out,image):
-	out.write(image);
+time.sleep(5)
+
+video = cv2.VideoCapture("shmsrc socket-path=/tmp/camera_image ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
+video_1m = cv2.VideoCapture("shmsrc socket-path=/tmp/camera_1m ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
+video_face_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/face_recognition_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
+video_obj_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/object_detection_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
+video_gest_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/gesture_recognition_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
+video_style_transfer = cv2.VideoCapture("shmsrc socket-path=/tmp/style_transfer is-live=true ! queue ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! queue ! appsink wait-on-eos=false drop=true", cv2.CAP_GSTREAMER)
+
+
+while video.isOpened() is False:
+	to_node("status", 'video is not open')
+	time.sleep(5)
+
 
 while True:
+
+	#if show_style_transfer is False and video_style_transfer.isOpened() is True:
+	#	video_style_transfer.release()
+	#	#del video_style_transfer
+	#	#video_style_transfer = cv2.VideoCapture()
+	#	to_node("status", 'closing smo: /tmp/style_transfer')
+
 
 	if show_camera is True:
 		if show_camera_1m is True:
 			ret, image = video_1m.read()
 		else:
 			ret, image = video.read()
+	elif show_style_transfer is True:
+	#	if video_style_transfer.isOpened() is False:			
+	#		video_style_transfer.open("shmsrc socket-path=/tmp/style_transfer is-live=true wait-on-eos=false drop=true ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
+	#		to_node("status", 'opening smo: /tmp/style_transfer')
+		try:		
+			ret, frame = video_style_transfer.read()
+			if ret is True:
+				image = frame.copy()
+		except:
+			to_node("status", 'error')
 	else:
-		image = np.zeros((1920,1080,3), np.uint8)
+		
 		ret = False
 		
 	if ret is False:
+		image = np.zeros((1920,1080,3), np.uint8)
 		out.write(image)
 		#cv2.imshow("center image", image)
 		#cv2.waitKey(1)
@@ -184,9 +219,6 @@ while True:
 	if show_gest_captions is True:
 		image = np.where(image_gest_cap > 0 , image_gest_cap , image)
 
-
-	#WriteThread = Thread(target=writeImageToBuffer, args= (out,(image)))
-	#WriteThread.start()	
 	out.write(image)
 
 

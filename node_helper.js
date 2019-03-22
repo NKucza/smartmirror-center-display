@@ -14,6 +14,21 @@ module.exports = NodeHelper.create({
 		console.log("[" + self.name + "] starting python");
     	self.pyshell = new PythonShell('modules/' + this.name + '/python_scripts/center-display-combine.py', {args: [JSON.stringify(this.config)]});
 
+		self.pyshell.on('message', function (message) {
+			try {
+				var parsed_message = JSON.parse(message)
+				//console.log("[MSG " + self.name + "] " + parsed_message);
+      				if (parsed_message.hasOwnProperty('status')){
+      					console.log("[" + self.name + "] " + parsed_message.status);
+      				}
+			}
+			catch(err) {
+				console.log("[" + self.name + "] a non json message received");
+				//console.log(message);
+				//console.log(err);
+			}
+    		});
+
   	},
 
 	// Subclass socketNotificationReceived received.
