@@ -1,4 +1,11 @@
-
+/**
+ * @file smartmirror-center-display.js
+ *
+ * @author nkucza
+ * @license MIT
+ *
+ * @see  https://github.com/NKucza/smartmirror-center-display
+ */
 
 Module.register('smartmirror-center-display',{
 
