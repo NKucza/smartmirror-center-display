@@ -162,11 +162,11 @@ signal.signal(signal.SIGINT, shutdown)
 
 time.sleep(5)
 
-video = cv2.VideoCapture("shmsrc socket-path=/tmp/camera_image ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
-video_1m = cv2.VideoCapture("shmsrc socket-path=/tmp/camera_1m ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
-video_face_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/face_recognition_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
-video_obj_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/object_detection_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
-video_gest_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/gesture_recognition_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink", cv2.CAP_GSTREAMER)
+video = cv2.VideoCapture("shmsrc socket-path=/tmp/camera_image ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink drop=true", cv2.CAP_GSTREAMER)
+video_1m = cv2.VideoCapture("shmsrc socket-path=/tmp/camera_1m ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink drop=true", cv2.CAP_GSTREAMER)
+video_face_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/face_recognition_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink drop=true", cv2.CAP_GSTREAMER)
+video_obj_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/object_detection_captions ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink drop=true", cv2.CAP_GSTREAMER)
+video_gest_cap = cv2.VideoCapture("shmsrc socket-path=/tmp/gesture_recognition_captions ! video/x-raw, format=BGR, height=1920,width=1080, framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! appsink drop=true", cv2.CAP_GSTREAMER)
 video_style_transfer = cv2.VideoCapture("shmsrc socket-path=/tmp/style_transfer is-live=true ! queue ! video/x-raw, format=BGR ,height=1920,width=1080,framerate=30/1 ! videoconvert ! video/x-raw, format=BGR ! queue ! appsink wait-on-eos=false drop=true", cv2.CAP_GSTREAMER)
 
 
